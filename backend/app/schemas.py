@@ -19,6 +19,8 @@ class ActionResult(BaseModel):
     ok: bool
     message: str
     entry: dict[str, Any] | None = None
+    # 气体告警联动：读数被识别为同一事件而抑制时，前端据此展示抑制说明而非报错
+    suppressed: bool = False
 
 
 class EntryPayload(BaseModel):

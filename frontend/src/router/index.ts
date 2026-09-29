@@ -12,6 +12,7 @@ const Excavation = () => import('@/views/excavation/index.vue')
 const Well = () => import('@/views/well/index.vue')
 const Drainage = () => import('@/views/drainage/index.vue')
 const GasDetect = () => import('@/views/gas_detect/index.vue')
+const GasAlarm = () => import('@/views/gas_alarm/index.vue')
 const Leak = () => import('@/views/leak/index.vue')
 const MeterRecord = () => import('@/views/meter_record/index.vue')
 const Hydrant = () => import('@/views/hydrant/index.vue')
@@ -35,6 +36,7 @@ const router = createRouter({
     { path: '/well', name: 'well', component: Well },
     { path: '/drainage', name: 'drainage', component: Drainage },
     { path: '/gas_detect', name: 'gas_detect', component: GasDetect },
+    { path: '/gas_alarm', name: 'gas_alarm', component: GasAlarm },
     { path: '/leak', name: 'leak', component: Leak },
     { path: '/meter_record', name: 'meter_record', component: MeterRecord },
     { path: '/hydrant', name: 'hydrant', component: Hydrant },

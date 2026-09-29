@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.services.gas_alarm import gas_alarm_service
 from app.store import store
 
 MODULE = "gas_detect"
@@ -21,6 +22,7 @@ class GasDetectService:
         page: int = 1,
         size: int = 20,
     ) -> tuple[list[dict[str, Any]], int]:
+        gas_alarm_service.ensure_ready()
         rows = store.rows(MODULE)
         if keyword:
             rows = [row for row in rows if keyword in str(row.get("点位编号", ""))]
@@ -31,19 +33,30 @@ class GasDetectService:
         return rows[start:start + size], total
 
     def get_entry(self, entry_id: int) -> dict[str, Any] | None:
+        gas_alarm_service.ensure_ready()
         return store.find(MODULE, entry_id)
 
     def create_entry(self, values: dict[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
+        gas_alarm_service.ensure_ready()
         missing = [field for field in REQUIRED_FIELDS if not str(values.get(field) or "").strip()]
         if missing:
             return None, missing
         rows = store.rows(MODULE)
         entry = {"id": max((int(row.get("id", 0)) for row in rows), default=0) + 1}
         entry.update({field: values.get(field) for field in REQUIRED_FIELDS})
+        entry["当前浓度"] = values.get("当前浓度") or "0"
+        entry["报警阈值"] = values.get("报警阈值") or ""
+        entry["上次标定日"] = values.get("上次标定日") or ""
+        entry["监测时间"] = values.get("监测时间") or ""
         entry["status"] = STATUS_ORDER[0]
-        entry["pending"] = True
+        entry["pending"] = False
         entry["abnormal"] = False
+        # 新点位同样纳入处置编排，等级/负责人/恢复状态由联动事件统一同步
+        entry["负责人"] = "值班调度员"
+        entry["关联事件"] = ""
+        entry["恢复状态"] = "已恢复"
         rows.append(entry)
+        gas_alarm_service.bind_new_point(entry)
         return entry, []
 
     def run_action(self, entry_id: int, action: str) -> tuple[dict[str, Any] | None, str]:
@@ -55,7 +68,5 @@ class GasDetectService:
         target = ACTION_RULES[action]
         if target not in STATUS_ORDER:
             return None, f"目标状态「{target}」不在允许的状态序列里"
-        entry["status"] = target
-        entry["pending"] = target != STATUS_ORDER[-1]
-        entry["abnormal"] = action in NEGATIVE_ACTIONS
+        gas_alarm_service.apply_manual_status(entry, target, action)
         return entry, f"监测点位已{action}"
